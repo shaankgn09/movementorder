@@ -15,7 +15,8 @@ input{width:100%;padding:6px;box-sizing:border-box}
 .overlay{position:absolute;font-weight:bold;font-size:12pt;color:#000}
 </style>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
 let playerDB = JSON.parse(localStorage.getItem('playerDB')||'[]');
 
 function saveTeam(){
