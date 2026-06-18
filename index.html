@@ -123,6 +123,7 @@ th{background:#f0f0f0}
 </div><!-- end .container -->
 
 <!-- jsPDF loaded properly as external script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
@@ -328,73 +329,31 @@ function reusePlayer(i) {
 }
 
 // ─── PDF Export ───────────────────────────────────────────────────────────────
-function exportPDF() {
-  if (!window.jspdf || !window.jspdf.jsPDF) {
-    alert('❌ jsPDF library not loaded yet. Please wait a moment and try again.');
-    return;
-  }
+
+async function exportPDF() {
   try {
-    var jsPDF = window.jspdf.jsPDF;
-    var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    var data = getAllData();
-
-    // Header text
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('MOVEMENT ORDER', 105, 15, { align: 'center' });
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text('Discipline : ' + (data.discipline || ''), 14, 28);
-    doc.text('Age Group : '  + (data.agegroup   || ''), 14, 35);
-    doc.text('Venue     : '  + (data.venue      || ''), 14, 42);
-    doc.text('Date      : '  + (data.date       || ''), 14, 49);
-    doc.text('From      : '  + (data.fromdate   || ''), 14, 56);
-    doc.text('To        : '  + (data.todate     || ''), 80, 56);
-
-    doc.text('Official 1 : ' + (data.official1    || ''), 14, 68);
-    doc.text('Desig.     : ' + (data.designation1 || ''), 14, 74);
-    doc.text('Posting    : ' + (data.posting1     || ''), 14, 80);
-
-    doc.text('Official 2 : ' + (data.official2    || ''), 110, 68);
-    doc.text('Desig.     : ' + (data.designation2 || ''), 110, 74);
-    doc.text('Posting    : ' + (data.posting2     || ''), 110, 80);
-
-    // Students table header
-    var startY = 90;
-    doc.setFont(undefined, 'bold');
-    doc.text('#',   14, startY);
-    doc.text('Name',       20, startY);
-    doc.text('Parentage',  70, startY);
-    doc.text('Class',     110, startY);
-    doc.text('DOB',       125, startY);
-    doc.text('School',    150, startY);
-    doc.setLineWidth(0.3);
-    doc.line(14, startY + 2, 196, startY + 2);
-
-    doc.setFont(undefined, 'normal');
-    var y = startY + 8;
-    data.students.forEach(function(s, i) {
-      if (y > 270) { doc.addPage(); y = 20; }
-      doc.text(String(i + 1),            14, y);
-      doc.text((s.name      || '').substring(0, 22), 20,  y);
-      doc.text((s.parentage || '').substring(0, 18), 70,  y);
-      doc.text((s.classname || '').substring(0, 8),  110, y);
-      doc.text((s.dob       || '').substring(0, 12), 125, y);
-      doc.text((s.school    || '').substring(0, 22), 150, y);
-      y += 7;
+    const preview = document.getElementById("previewBox");
+    const canvas = await html2canvas(preview,{
+      scale:3,
+      useCORS:true,
+      allowTaint:true
     });
 
-    // Embed full JSON for re-import (invisible, at bottom of last page)
-    doc.setFontSize(1);
-    doc.setTextColor(255, 255, 255);
-    var jsonStr = JSON.stringify({ version: '1.0', data: data });
-    doc.text('MO_JSON_START ' + jsonStr + ' MO_JSON_END', 14, 292);
-    doc.setTextColor(0, 0, 0);
+    const imgData = canvas.toDataURL("image/jpeg",1.0);
+    const { jsPDF } = window.jspdf;
 
-    doc.save('Movement_Order.pdf');
-  } catch(e) {
-    alert('❌ PDF export failed: ' + e.message);
+    const pdf = new jsPDF({
+      orientation:"portrait",
+      unit:"mm",
+      format:"a4"
+    });
+
+    pdf.addImage(imgData,"JPEG",0,0,210,297);
+    pdf.save("Movement_Order.pdf");
+
+  } catch(err) {
+    alert("PDF export failed: " + err.message);
+    console.error(err);
   }
 }
 
