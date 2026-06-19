@@ -108,19 +108,19 @@ th{background:#f0f0f0}
 <div class="preview" id="previewBox">
   <img id="templateImg" src="movement_order.jpg" onerror="this.style.opacity=0.05">
 
-  <div class="overlay" id="pdiscipline"   style="top:6.72cm;left:3.84cm"></div>
-  <div class="overlay" id="pagegroup"     style="top:6.72cm;left:8.5cm"></div>
-  <div class="overlay" id="pvenue1"       style="top:6.72cm;left:13cm"></div>
-  <div class="overlay" id="pvenue2"       style="top:9.72cm;left:13cm"></div>
-  <div class="overlay" id="pvenue3"       style="top:12.72cm;left:13cm"></div>
+  <div class="overlay" id="pdiscipline"   style="top:5cm;left:4cm"></div>
+  <div class="overlay" id="pagegroup"     style="top:5cm;left:12.5cm"></div>
+  <div class="overlay" id="pvenue1"       style="top:5.8cm;left:3cm"></div>
+  <div class="overlay" id="pvenue2"       style="top:6.5cm;left:2.5cm"></div>
+  <div class="overlay" id="pvenue3"       style="top:8.8cm;left:6.2cm"></div>
 
   <!-- From Date appears twice, 3cm apart vertically -->
-  <div class="overlay" id="pfrom1"        style="top:7.5cm;left:8cm"></div>
-  <div class="overlay" id="pfrom2"        style="top:10.5cm;left:8cm"></div>
-  <div class="overlay" id="pto"           style="top:7.5cm;left:12cm"></div>
+  <div class="overlay" id="pfrom1"        style="top:5.8cm;left:8.2cm"></div>
+  <div class="overlay" id="pfrom2"        style="top:6.5cm;left:8cm"></div>
+  <div class="overlay" id="pto"           style="top:6.5cm;left:12cm"></div>
 
-  <div class="overlay" id="pofficial1"    style="top:22.5cm;left:3cm"></div>
-  <div class="overlay" id="pposting1"     style="top:23.2cm;left:3cm"></div>
+  <div class="overlay" id="pofficial1"    style="top:7.4cm;left:3.5cm"></div>
+  <div class="overlay" id="pposting1"     style="top:7.4cm;left:15cm"></div>
 
   <div class="overlay" id="pofficial2"    style="top:22.5cm;left:11cm"></div>
   <div class="overlay" id="pposting2"     style="top:23.2cm;left:11cm"></div>
@@ -229,13 +229,13 @@ function renderStudentOverlays() {
   var box = document.getElementById('studentOverlays');
   var html = '';
   students.forEach(function(s, i) {
-    var top = (14.30 + i * 0.78).toFixed(2);
+    var top = (13.8 + i * 0.68).toFixed(2);
     html +=
-      '<div class="overlay" style="top:' + top + 'cm;left:2.0cm">'  + esc(s.name)      + '</div>' +
-      '<div class="overlay" style="top:' + top + 'cm;left:5.0cm">'  + esc(s.parentage) + '</div>' +
-      '<div class="overlay" style="top:' + top + 'cm;left:8.0cm">'  + esc(s.classname) + '</div>' +
-      '<div class="overlay" style="top:' + top + 'cm;left:11.0cm">' + esc(s.dob)       + '</div>' +
-      '<div class="overlay" style="top:' + top + 'cm;left:14.0cm">' + esc(s.school)    + '</div>';
+      '<div class="overlay" style="top:' + top + 'cm;left:3.0cm">'  + esc(s.name)      + '</div>' +
+      '<div class="overlay" style="top:' + top + 'cm;left:7.5cm">'  + esc(s.parentage) + '</div>' +
+      '<div class="overlay" style="top:' + top + 'cm;left:11.6cm">'  + esc(s.classname) + '</div>' +
+      '<div class="overlay" style="top:' + top + 'cm;left:13.5cm">' + esc(s.dob)       + '</div>' +
+      '<div class="overlay" style="top:' + top + 'cm;left:15.8cm">' + esc(s.school)    + '</div>';
   });
   box.innerHTML = html;
 }
