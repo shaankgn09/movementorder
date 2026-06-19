@@ -10,10 +10,10 @@ h2{margin-top:0}
 .container{display:flex;gap:15px;flex-wrap:wrap}
 .form{width:440px;background:#fff;padding:15px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
 label{display:block;font-weight:bold;margin-top:8px;font-size:13px}
-input[type=text],input[type=date],input:not([type]){width:100%;padding:6px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px}
+input[type=text],input[type=date],select,input:not([type]){width:100%;padding:6px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px}
 button{margin-top:6px;padding:6px 10px;cursor:pointer;border-radius:4px;border:1px solid #888;background:#eee}
 button:hover{background:#ddd}
-.btn-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.btn-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
 hr{margin:14px 0}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th,td{border:1px solid #ccc;padding:4px;text-align:left}
@@ -23,6 +23,8 @@ th{background:#f0f0f0}
 .overlay{position:absolute;font-weight:bold;font-size:11pt;color:#000;white-space:nowrap}
 #searchResults div{padding:4px;background:#fff;border:1px solid #ddd;cursor:pointer}
 #searchResults div:hover{background:#eef}
+.team-row{display:flex;gap:6px;align-items:center}
+.team-row select{flex:1}
 </style>
 </head>
 <body>
@@ -35,17 +37,14 @@ th{background:#f0f0f0}
   <label>Discipline</label><input id="discipline">
   <label>Age Group</label><input id="agegroup">
   <label>Venue</label><input id="venue">
-  <label>Date</label><input id="date">
   <label>From Date</label><input id="fromdate">
   <label>To Date</label><input id="todate">
 
   <hr>
   <label>Official 1 – Name</label><input id="official1">
-  <label>Official 1 – Designation</label><input id="designation1">
   <label>Official 1 – Posting</label><input id="posting1">
 
   <label>Official 2 – Name</label><input id="official2">
-  <label>Official 2 – Designation</label><input id="designation2">
   <label>Official 2 – Posting</label><input id="posting2">
 
   <hr>
@@ -71,11 +70,18 @@ th{background:#f0f0f0}
   </table>
 
   <hr>
-  <label>Team Name</label><input id="teamName" placeholder="Enter team name to save/load">
+  <label>Team Name</label><input id="teamName" placeholder="Enter team name to save">
   <div class="btn-group">
     <button onclick="saveTeam()">💾 Save Team</button>
-    <button onclick="openTeam()">📂 Open Team</button>
-    <button onclick="deleteTeam()">🗑 Delete Team</button>
+  </div>
+
+  <label>Saved Teams</label>
+  <div class="team-row">
+    <select id="teamSelect" onchange="onTeamSelectChange()">
+      <option value="">— select a saved team —</option>
+    </select>
+    <button onclick="openTeam()">📂 Open</button>
+    <button onclick="deleteTeam()">🗑 Delete</button>
   </div>
 
   <hr>
@@ -88,7 +94,7 @@ th{background:#f0f0f0}
     <button onclick="exportPDF()">📄 Export / Download PDF</button>
     <label style="font-weight:normal;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
       📥 Import Backup PDF
-      <input type="file" id="pdfImport" accept=".pdf,.txt" onchange="importBackup(event)" style="width:auto">
+      <input type="file" id="pdfImport" accept=".pdf" onchange="importBackup(event)" style="width:auto">
     </label>
   </div>
 
@@ -100,29 +106,29 @@ th{background:#f0f0f0}
 
 <!-- ====== PREVIEW ====== -->
 <div class="preview" id="previewBox">
-  <!-- Replace movement_order2.jpg with your actual template image -->
-  <img src="movement_order2.jpg" onerror="this.style.opacity=0.05">
+  <img id="templateImg" src="movement_order.jpg" onerror="this.style.opacity=0.05">
 
   <div class="overlay" id="pdiscipline"   style="top:6.72cm;left:3.84cm"></div>
   <div class="overlay" id="pagegroup"     style="top:6.72cm;left:8.5cm"></div>
   <div class="overlay" id="pvenue1"       style="top:6.72cm;left:13cm"></div>
   <div class="overlay" id="pvenue2"       style="top:9.72cm;left:13cm"></div>
   <div class="overlay" id="pvenue3"       style="top:12.72cm;left:13cm"></div>
-  <div class="overlay" id="pdate"         style="top:3cm;left:15cm"></div>
-  <div class="overlay" id="pfrom"         style="top:7.5cm;left:8cm"></div>
+
+  <!-- From Date appears twice, 3cm apart vertically -->
+  <div class="overlay" id="pfrom1"        style="top:7.5cm;left:8cm"></div>
+  <div class="overlay" id="pfrom2"        style="top:10.5cm;left:8cm"></div>
   <div class="overlay" id="pto"           style="top:7.5cm;left:12cm"></div>
+
   <div class="overlay" id="pofficial1"    style="top:22.5cm;left:3cm"></div>
-  <div class="overlay" id="pdesignation1" style="top:23.2cm;left:3cm"></div>
-  <div class="overlay" id="pposting1"     style="top:23.9cm;left:3cm"></div>
+  <div class="overlay" id="pposting1"     style="top:23.2cm;left:3cm"></div>
+
   <div class="overlay" id="pofficial2"    style="top:22.5cm;left:11cm"></div>
-  <div class="overlay" id="pdesignation2" style="top:23.2cm;left:11cm"></div>
-  <div class="overlay" id="pposting2"     style="top:23.9cm;left:11cm"></div>
+  <div class="overlay" id="pposting2"     style="top:23.2cm;left:11cm"></div>
   <div id="studentOverlays"></div>
 </div>
 
 </div><!-- end .container -->
 
-<!-- jsPDF loaded properly as external script -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -134,6 +140,7 @@ let playerDB = [];
 // ─── Init ─────────────────────────────────────────────────────────────────────
 window.addEventListener('load', function () {
   try { playerDB = JSON.parse(localStorage.getItem('playerDB') || '[]'); } catch(e) {}
+  refreshTeamList();
   updatePreview();
 });
 
@@ -142,20 +149,18 @@ document.addEventListener('input', function () { updatePreview(); });
 
 // ─── Preview ──────────────────────────────────────────────────────────────────
 function updatePreview() {
-  document.getElementById('pdiscipline').innerText   = val('discipline');
-  document.getElementById('pagegroup').innerText     = val('agegroup');
-  document.getElementById('pvenue1').innerText       = val('venue');
-  document.getElementById('pvenue2').innerText       = val('venue');
-  document.getElementById('pvenue3').innerText       = val('venue');
-  document.getElementById('pdate').innerText         = val('date');
-  document.getElementById('pfrom').innerText         = val('fromdate');
-  document.getElementById('pto').innerText           = val('todate');
-  document.getElementById('pofficial1').innerText    = val('official1');
-  document.getElementById('pdesignation1').innerText = val('designation1');
-  document.getElementById('pposting1').innerText     = val('posting1');
-  document.getElementById('pofficial2').innerText    = val('official2');
-  document.getElementById('pdesignation2').innerText = val('designation2');
-  document.getElementById('pposting2').innerText     = val('posting2');
+  document.getElementById('pdiscipline').innerText = val('discipline');
+  document.getElementById('pagegroup').innerText   = val('agegroup');
+  document.getElementById('pvenue1').innerText     = val('venue');
+  document.getElementById('pvenue2').innerText     = val('venue');
+  document.getElementById('pvenue3').innerText     = val('venue');
+  document.getElementById('pfrom1').innerText      = val('fromdate');
+  document.getElementById('pfrom2').innerText      = val('fromdate');
+  document.getElementById('pto').innerText         = val('todate');
+  document.getElementById('pofficial1').innerText  = val('official1');
+  document.getElementById('pposting1').innerText   = val('posting1');
+  document.getElementById('pofficial2').innerText  = val('official2');
+  document.getElementById('pposting2').innerText   = val('posting2');
 }
 
 function val(id) { return document.getElementById(id).value || ''; }
@@ -172,11 +177,9 @@ function addStudent() {
   if (!s.name) { alert('Please enter a student name.'); return; }
   students.push(s);
 
-  // Save to player DB for future search/reuse
   playerDB.push(Object.assign({}, s));
   try { localStorage.setItem('playerDB', JSON.stringify(playerDB)); } catch(e) {}
 
-  // Clear fields
   ['studentname','parentage','classname','dob','school'].forEach(function(id){
     document.getElementById(id).value = '';
   });
@@ -244,26 +247,23 @@ function esc(str) {
 // ─── Team Save / Load / Delete ────────────────────────────────────────────────
 function getAllData() {
   return {
-    discipline:   val('discipline'),
-    agegroup:     val('agegroup'),
-    venue:        val('venue'),
-    date:         val('date'),
-    fromdate:     val('fromdate'),
-    todate:       val('todate'),
-    official1:    val('official1'),
-    designation1: val('designation1'),
-    posting1:     val('posting1'),
-    official2:    val('official2'),
-    designation2: val('designation2'),
-    posting2:     val('posting2'),
-    students:     students || []
+    discipline: val('discipline'),
+    agegroup:   val('agegroup'),
+    venue:      val('venue'),
+    fromdate:   val('fromdate'),
+    todate:     val('todate'),
+    official1:  val('official1'),
+    posting1:   val('posting1'),
+    official2:  val('official2'),
+    posting2:   val('posting2'),
+    students:   students || []
   };
 }
 
 function loadData(d) {
   d = d || {};
-  var fields = ['discipline','agegroup','venue','date','fromdate','todate',
-                'official1','designation1','posting1','official2','designation2','posting2'];
+  var fields = ['discipline','agegroup','venue','fromdate','todate',
+                'official1','posting1','official2','posting2'];
   fields.forEach(function(id) {
     document.getElementById(id).value = d[id] || '';
   });
@@ -273,11 +273,44 @@ function loadData(d) {
   updatePreview();
 }
 
+// Returns array of saved team names (without the "team_" prefix)
+function getSavedTeamNames() {
+  var names = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var key = localStorage.key(i);
+    if (key && key.indexOf('team_') === 0) {
+      names.push(key.substring(5));
+    }
+  }
+  names.sort(function(a, b) { return a.localeCompare(b); });
+  return names;
+}
+
+// Rebuilds the <select> dropdown with all currently saved teams
+function refreshTeamList() {
+  var select = document.getElementById('teamSelect');
+  var names = getSavedTeamNames();
+  var current = select.value;
+  select.innerHTML = '<option value="">— select a saved team —</option>' +
+    names.map(function(n) {
+      return '<option value="' + esc(n) + '">' + esc(n) + '</option>';
+    }).join('');
+  // Restore previous selection if it still exists
+  if (names.indexOf(current) !== -1) select.value = current;
+}
+
+function onTeamSelectChange() {
+  var name = document.getElementById('teamSelect').value;
+  if (name) document.getElementById('teamName').value = name;
+}
+
 function saveTeam() {
   var name = val('teamName').trim();
   if (!name) { alert('Please enter a team name first.'); return; }
   try {
     localStorage.setItem('team_' + name, JSON.stringify(getAllData()));
+    refreshTeamList();
+    document.getElementById('teamSelect').value = name;
     alert('✅ Team "' + name + '" saved successfully!');
   } catch(e) {
     alert('❌ Save failed: ' + e.message);
@@ -285,12 +318,13 @@ function saveTeam() {
 }
 
 function openTeam() {
-  var name = val('teamName').trim();
-  if (!name) { alert('Please enter a team name to load.'); return; }
+  var name = document.getElementById('teamSelect').value || val('teamName').trim();
+  if (!name) { alert('Please select or enter a team name to load.'); return; }
   var raw = localStorage.getItem('team_' + name);
   if (!raw) { alert('❌ Team "' + name + '" not found in storage.'); return; }
   try {
     loadData(JSON.parse(raw));
+    document.getElementById('teamName').value = name;
     alert('✅ Team "' + name + '" loaded!');
   } catch(e) {
     alert('❌ Failed to load: ' + e.message);
@@ -298,10 +332,11 @@ function openTeam() {
 }
 
 function deleteTeam() {
-  var name = val('teamName').trim();
-  if (!name) { alert('Please enter a team name to delete.'); return; }
+  var name = document.getElementById('teamSelect').value || val('teamName').trim();
+  if (!name) { alert('Please select or enter a team name to delete.'); return; }
   if (!confirm('Delete team "' + name + '"?')) return;
   localStorage.removeItem('team_' + name);
+  refreshTeamList();
   alert('🗑 Team "' + name + '" deleted.');
 }
 
@@ -328,75 +363,136 @@ function reusePlayer(i) {
   document.getElementById('searchResults').innerHTML = '';
 }
 
-// ─── PDF Export ───────────────────────────────────────────────────────────────
-
+// ─── PDF Export (visual snapshot + invisible embedded JSON for re-import) ────
 async function exportPDF() {
   try {
-    const preview = document.getElementById("previewBox");
-    const canvas = await html2canvas(preview,{
-      scale:3,
-      useCORS:true,
-      allowTaint:true
+    const preview = document.getElementById('previewBox');
+    const canvas = await html2canvas(preview, {
+      scale: 3,
+      useCORS: true,
+      allowTaint: true
     });
 
-    const imgData = canvas.toDataURL("image/jpeg",1.0);
+    const imgData = canvas.toDataURL('image/jpeg', 1.0);
     const { jsPDF } = window.jspdf;
 
     const pdf = new jsPDF({
-      orientation:"portrait",
-      unit:"mm",
-      format:"a4"
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
     });
 
-    pdf.addImage(imgData,"JPEG",0,0,210,297);
-    pdf.save("Movement_Order.pdf");
+    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
 
-  } catch(err) {
-    alert("PDF export failed: " + err.message);
+    // Embed the full data as invisible (white, tiny) text so the same PDF
+    // can be re-imported later to restore all fields and students.
+    var data = getAllData();
+    var jsonStr = JSON.stringify({ version: '1.0', data: data });
+    pdf.setFontSize(1);
+    pdf.setTextColor(255, 255, 255);
+    // jsPDF can choke on extremely long single text() calls — split into chunks
+    var chunkSize = 400;
+    var yPos = 295;
+    for (var i = 0; i < jsonStr.length; i += chunkSize) {
+      pdf.text('MO_JSON_CHUNK:' + jsonStr.substring(i, i + chunkSize), 2, yPos);
+      yPos += 1;
+      if (yPos > 296) { pdf.addPage(); yPos = 5; }
+    }
+    pdf.setTextColor(0, 0, 0);
+
+    pdf.save('Movement_Order.pdf');
+
+  } catch (err) {
+    alert('PDF export failed: ' + err.message);
     console.error(err);
   }
 }
 
 // ─── PDF Import / Backup Restore ─────────────────────────────────────────────
+// Reads the PDF, extracts the embedded invisible text layer via pdf.js,
+// reassembles the chunks, and restores all fields + students.
 function importBackup(event) {
   var file = event.target.files[0];
   if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function() {
-    var txt = reader.result;
-    // Match our embedded JSON block
-    var m = txt.match(/MO_JSON_START\s*(\{[\s\S]*?\})\s*MO_JSON_END/);
-    if (m) {
-      try {
-        var obj = JSON.parse(m[1]);
-        if (obj.version && obj.data) {
-          loadData(obj.data);
-          alert('✅ Data imported successfully!');
-        } else {
-          alert('❌ JSON structure not recognised.');
+
+  ensurePdfJsLoaded().then(function () {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var typedArray = new Uint8Array(reader.result);
+      window.pdfjsLib.getDocument({ data: typedArray }).promise.then(function (pdf) {
+        var pageTextPromises = [];
+        for (var p = 1; p <= pdf.numPages; p++) {
+          pageTextPromises.push(
+            pdf.getPage(p).then(function (page) {
+              return page.getTextContent().then(function (tc) {
+                return tc.items.map(function (it) { return it.str; }).join('\n');
+              });
+            })
+          );
         }
-      } catch(e) {
-        alert('❌ Import failed: ' + e.message);
-      }
+        Promise.all(pageTextPromises).then(function (pagesText) {
+          var fullText = pagesText.join('\n');
+          restoreFromExtractedText(fullText);
+          event.target.value = '';
+        }).catch(function (e) {
+          alert('❌ Could not read PDF text: ' + e.message);
+        });
+      }).catch(function (e) {
+        alert('❌ Could not open PDF: ' + e.message);
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }).catch(function (e) {
+    alert('❌ Could not load PDF reader library: ' + e.message);
+  });
+}
+
+function restoreFromExtractedText(fullText) {
+  // Find every chunk marker and reassemble in order
+  var regex = /MO_JSON_CHUNK:([^\n]*)/g;
+  var match;
+  var chunks = [];
+  while ((match = regex.exec(fullText)) !== null) {
+    chunks.push(match[1]);
+  }
+  if (chunks.length === 0) {
+    alert('❌ No embedded data found in this PDF.\nOnly PDFs exported by this system can be re-imported.');
+    return;
+  }
+  var jsonStr = chunks.join('');
+  // Trim anything after the last closing brace, just in case of trailing noise
+  var lastBrace = jsonStr.lastIndexOf('}');
+  if (lastBrace !== -1) jsonStr = jsonStr.substring(0, lastBrace + 1);
+
+  try {
+    var obj = JSON.parse(jsonStr);
+    if (obj && obj.data) {
+      loadData(obj.data);
+      alert('✅ Data imported successfully!');
     } else {
-      // Fallback: try to find any {"version":"1.0"...} block
-      var m2 = txt.match(/\{"version":"1\.0","data":\{[\s\S]*?\}\}/);
-      if (m2) {
-        try {
-          var obj2 = JSON.parse(m2[0]);
-          loadData(obj2.data);
-          alert('✅ Data imported (fallback method)!');
-        } catch(e) {
-          alert('❌ Fallback import failed: ' + e.message);
-        }
-      } else {
-        alert('❌ No embedded data found.\nOnly PDFs exported by this system can be re-imported.');
-      }
+      alert('❌ JSON structure not recognised.');
     }
-    // Reset file input so same file can be re-selected
-    event.target.value = '';
-  };
-  reader.readAsText(file);
+  } catch (e) {
+    alert('❌ Import failed while parsing data: ' + e.message);
+  }
+}
+
+// Lazily load pdf.js (only needed for import)
+function ensurePdfJsLoaded() {
+  return new Promise(function (resolve, reject) {
+    if (window.pdfjsLib) { resolve(); return; }
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload = function () {
+      try {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        resolve();
+      } catch (e) { reject(e); }
+    };
+    script.onerror = function () { reject(new Error('Failed to load pdf.js from CDN')); };
+    document.head.appendChild(script);
+  });
 }
 </script>
 </body>
