@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -72,10 +71,7 @@ hr{border:none;border-top:1.5px solid #e0e7ef;margin:12px 0}
     </div>
     <div>
       <label>Gender</label>
-      <div class="gender-group">
-        <div class="gender-btn" id="btn-boys" onclick="setGender('boys')">👦 Boys</div>
-        <div class="gender-btn" id="btn-girls" onclick="setGender('girls')">👧 Girls</div>
-      </div>
+      <input type="text" id="gender" placeholder="e.g. Boys / Girls" oninput="updatePreview()">
     </div>
   </div>
   <label>Venue</label><input id="venue" oninput="updatePreview()">
@@ -112,8 +108,7 @@ hr{border:none;border-top:1.5px solid #e0e7ef;margin:12px 0}
   <table id="studentTable">
     <thead>
       <tr>
-        <th style="width:24px"></th>
-        <th>#</th><th>Name</th><th>Parentage</th><th>Class</th><th>DOB</th><th>School</th><th colspan="2">Act</th>
+        <th>#</th><th>Name</th><th>Parentage</th><th>Class</th><th>DOB</th><th>School</th><th>Move</th><th colspan="2">Act</th>
       </tr>
     </thead>
     <tbody id="studentBody"></tbody>
@@ -180,20 +175,25 @@ window.addEventListener('load',function(){
   refreshTeamList();updatePreview();
 });
 
+function moveStudent(i,dir){
+  var j=i+dir;
+  if(j<0||j>=students.length)return;
+  var tmp=students[i];students[i]=students[j];students[j]=tmp;
+  renderStudentTable();renderStudentOverlays();
+}
+
 function setGender(g){
   selectedGender=g;
-  document.getElementById('btn-boys').className='gender-btn'+(g==='boys'?' active-boys':'');
-  document.getElementById('btn-girls').className='gender-btn'+(g==='girls'?' active-girls':'');
   updatePreview();
 }
 
 function updatePreview(){
   var d=val('discipline');
   var ag=val('agegroup');
-  var gLabel=selectedGender?'('+selectedGender.toUpperCase()+')':'';
+  var gLabel=val('gender');
   document.getElementById('pdiscipline').innerText=toTitle(d);
   document.getElementById('pagegroup').innerText=toTitle(ag);
-  document.getElementById('pgender').innerText=gLabel;
+  document.getElementById('pgender').innerText=toTitle(gLabel);
   ['pvenue1','pvenue2','pvenue3'].forEach(function(id){document.getElementById(id).innerText=toTitle(val('venue'));});
   document.getElementById('pfrom1').innerText=val('fromdate');
   document.getElementById('pfrom2').innerText=val('fromdate');
@@ -233,22 +233,19 @@ function renderStudentTable(){
   tbody.innerHTML='';
   students.forEach(function(s,i){
     var tr=document.createElement('tr');
-    tr.draggable=true;
-    tr.dataset.idx=i;
     tr.innerHTML=
-      '<td class="drag-handle" title="Drag to reorder">☰</td>'+
       '<td>'+(i+1)+'</td>'+
       '<td>'+esc(s.name)+'</td>'+
       '<td>'+esc(s.parentage)+'</td>'+
       '<td>'+esc(s.classname)+'</td>'+
       '<td>'+esc(s.dob)+'</td>'+
       '<td>'+esc(s.school)+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="btn btn-secondary" style="padding:2px 6px;font-size:11px" onclick="moveStudent('+i+',-1)" '+(i===0?'disabled':'')+'>▲</button> '+
+        '<button class="btn btn-secondary" style="padding:2px 6px;font-size:11px" onclick="moveStudent('+i+',1)" '+(i===students.length-1?'disabled':'')+'>▼</button>'+
+      '</td>'+
       '<td><button class="btn btn-warning" style="padding:3px 7px;font-size:10px" onclick="editStudent('+i+')">✏️</button></td>'+
       '<td><button class="btn btn-danger" style="padding:3px 7px;font-size:10px" onclick="deleteStudent('+i+')">❌</button></td>';
-    tr.addEventListener('dragstart',function(e){dragSrcIdx=parseInt(this.dataset.idx);this.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
-    tr.addEventListener('dragend',function(){this.classList.remove('dragging');document.querySelectorAll('#studentBody tr').forEach(function(r){r.classList.remove('drag-over');});});
-    tr.addEventListener('dragover',function(e){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll('#studentBody tr').forEach(function(r){r.classList.remove('drag-over');});this.classList.add('drag-over');});
-    tr.addEventListener('drop',function(e){e.stopPropagation();var dropIdx=parseInt(this.dataset.idx);if(dragSrcIdx!==null&&dragSrcIdx!==dropIdx){var moved=students.splice(dragSrcIdx,1)[0];students.splice(dropIdx,0,moved);renderStudentTable();renderStudentOverlays();}dragSrcIdx=null;});
     tbody.appendChild(tr);
   });
 }
@@ -269,13 +266,12 @@ function renderStudentOverlays(){
 function esc(str){return(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function getAllData(){
-  return{discipline:val('discipline'),agegroup:val('agegroup'),gender:selectedGender,venue:val('venue'),fromdate:val('fromdate'),todate:val('todate'),official1:val('official1'),posting1:val('posting1'),official2:val('official2'),posting2:val('posting2'),students:students||[]};
+  return{discipline:val('discipline'),agegroup:val('agegroup'),gender:val('gender'),venue:val('venue'),fromdate:val('fromdate'),todate:val('todate'),official1:val('official1'),posting1:val('posting1'),official2:val('official2'),posting2:val('posting2'),students:students||[]};
 }
 
 function loadData(d){
   d=d||{};
-  ['discipline','agegroup','venue','fromdate','todate','official1','posting1','official2','posting2'].forEach(function(id){document.getElementById(id).value=d[id]||'';});
-  if(d.gender)setGender(d.gender);
+  ['discipline','agegroup','gender','venue','fromdate','todate','official1','posting1','official2','posting2'].forEach(function(id){document.getElementById(id).value=d[id]||'';});
   students=Array.isArray(d.students)?d.students:[];
   renderStudentTable();renderStudentOverlays();updatePreview();
 }
@@ -367,463 +363,18 @@ function restoreFromExtractedText(fullText){
   if(chunks.length===0){alert('No embedded data found in this PDF.');return;}
   var jsonStr=chunks.join('');var lastBrace=jsonStr.lastIndexOf('}');
   if(lastBrace!==-1)jsonStr=jsonStr.substring(0,lastBrace+1);
-    <label>Discipline</label><input id="discipline">
-  <label>Age Group</label><input id="agegroup">
-  <label>Venue</label><input id="venue">
-  <label>From Date</label><input id="fromdate">
-  <label>To Date</label><input id="todate">
-
-  <hr>
-  <label>Official 1 – Name</label><input id="official1">
-  <label>Official 1 – Posting</label><input id="posting1">
-
-  <label>Official 2 – Name</label><input id="official2">
-  <label>Official 2 – Posting</label><input id="posting2">
-
-  <hr>
-  <h3 style="margin:4px 0">Students</h3>
-  <label>Student Name</label><input id="studentname">
-  <label>Parentage</label><input id="parentage">
-  <label>Class</label><input id="classname">
-  <label>DOB</label><input id="dob">
-  <label>School Name</label><input id="school">
-
-  <div class="btn-group">
-    <button onclick="addStudent()">➕ Add Student</button>
-  </div>
-
-  <br>
-  <table id="studentTable" border="1">
-    <thead>
-      <tr>
-        <th>#</th><th>Name</th><th>Parentage</th><th>Class</th><th>DOB</th><th>School</th><th colspan="2">Actions</th>
-      </tr>
-    </thead>
-    <tbody id="studentBody"></tbody>
-  </table>
-
-  <hr>
-  <label>Team Name</label><input id="teamName" placeholder="Enter team name to save">
-  <div class="btn-group">
-    <button onclick="saveTeam()">💾 Save Team</button>
-  </div>
-
-  <label>Saved Teams</label>
-  <div class="team-row">
-    <select id="teamSelect" onchange="onTeamSelectChange()">
-      <option value="">— select a saved team —</option>
-    </select>
-    <button onclick="openTeam()">📂 Open</button>
-    <button onclick="deleteTeam()">🗑 Delete</button>
-  </div>
-
-  <hr>
-  <label>Search &amp; Reuse Player</label>
-  <input id="playerSearch" placeholder="Type player name…" oninput="searchPlayers()">
-  <div id="searchResults"></div>
-
-  <hr>
-  <div class="btn-group">
-    <button onclick="exportPDF()">📄 Export / Download PDF</button>
-    <label style="font-weight:normal;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-      📥 Import Backup PDF
-      <input type="file" id="pdfImport" accept=".pdf" onchange="importBackup(event)" style="width:auto">
-    </label>
-  </div>
-
-  <div class="btn-group">
-    <button onclick="updatePreview()">🔄 Update Preview</button>
-  </div>
-
-</div>
-
-<!-- ====== PREVIEW ====== -->
-<div class="preview" id="previewBox">
-  <img id="templateImg" src="movement_order.jpg" onerror="this.style.opacity=0.05">
-
-  <div class="overlay" id="pdiscipline"   style="top:5cm;left:4cm"></div>
-  <div class="overlay" id="pagegroup"     style="top:5cm;left:12.5cm"></div>
-  <div class="overlay" id="pvenue1"       style="top:5.8cm;left:3cm"></div>
-  <div class="overlay" id="pvenue2"       style="top:6.5cm;left:2.5cm"></div>
-  <div class="overlay" id="pvenue3"       style="top:8.8cm;left:6.2cm"></div>
-
-  <!-- From Date appears twice, 3cm apart vertically -->
-  <div class="overlay" id="pfrom1"        style="top:5.8cm;left:8.2cm"></div>
-  <div class="overlay" id="pfrom2"        style="top:6.5cm;left:8cm"></div>
-  <div class="overlay" id="pto"           style="top:6.5cm;left:12cm"></div>
-
-  <div class="overlay" id="pofficial1"    style="top:7.4cm;left:3.5cm"></div>
-  <div class="overlay" id="pposting1"     style="top:7.4cm;left:15cm"></div>
-
-  <div class="overlay" id="pofficial2"    style="top:22.5cm;left:11cm"></div>
-  <div class="overlay" id="pposting2"     style="top:23.2cm;left:11cm"></div>
-  <div id="studentOverlays"></div>
-</div>
-
-</div><!-- end .container -->
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<script>
-// ─── State ────────────────────────────────────────────────────────────────────
-let students = [];
-let playerDB = [];
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
-window.addEventListener('load', function () {
-  try { playerDB = JSON.parse(localStorage.getItem('playerDB') || '[]'); } catch(e) {}
-  refreshTeamList();
-  updatePreview();
-});
-
-// Live preview on any input change
-document.addEventListener('input', function () { updatePreview(); });
-
-// ─── Preview ──────────────────────────────────────────────────────────────────
-function updatePreview() {
-  document.getElementById('pdiscipline').innerText = val('discipline');
-  document.getElementById('pagegroup').innerText   = val('agegroup');
-  document.getElementById('pvenue1').innerText     = val('venue');
-  document.getElementById('pvenue2').innerText     = val('venue');
-  document.getElementById('pvenue3').innerText     = val('venue');
-  document.getElementById('pfrom1').innerText      = val('fromdate');
-  document.getElementById('pfrom2').innerText      = val('fromdate');
-  document.getElementById('pto').innerText         = val('todate');
-  document.getElementById('pofficial1').innerText  = val('official1');
-  document.getElementById('pposting1').innerText   = val('posting1');
-  document.getElementById('pofficial2').innerText  = val('official2');
-  document.getElementById('pposting2').innerText   = val('posting2');
+  try{var obj=JSON.parse(jsonStr);if(obj&&obj.data){loadData(obj.data);alert('Data imported successfully!');}else{alert('JSON structure not recognised.');}}catch(e){alert('Import failed: '+e.message);}
 }
 
-function val(id) { return document.getElementById(id).value || ''; }
+function toTitle(str){return(str||'').replace(/\w\S*/g,function(w){return w.charAt(0).toUpperCase()+w.substr(1).toLowerCase();});}
 
-// ─── Students ─────────────────────────────────────────────────────────────────
-function addStudent() {
-  var s = {
-    name:      val('studentname'),
-    parentage: val('parentage'),
-    classname: val('classname'),
-    dob:       val('dob'),
-    school:    val('school')
-  };
-  if (!s.name) { alert('Please enter a student name.'); return; }
-  students.push(s);
-
-  playerDB.push(Object.assign({}, s));
-  try { localStorage.setItem('playerDB', JSON.stringify(playerDB)); } catch(e) {}
-
-  ['studentname','parentage','classname','dob','school'].forEach(function(id){
-    document.getElementById(id).value = '';
-  });
-
-  renderStudentTable();
-  renderStudentOverlays();
-}
-
-function editStudent(i) {
-  var s = students[i];
-  if (!s) return;
-  document.getElementById('studentname').value = s.name      || '';
-  document.getElementById('parentage').value   = s.parentage || '';
-  document.getElementById('classname').value   = s.classname || '';
-  document.getElementById('dob').value         = s.dob       || '';
-  document.getElementById('school').value      = s.school    || '';
-  students.splice(i, 1);
-  renderStudentTable();
-  renderStudentOverlays();
-}
-
-function deleteStudent(i) {
-  if (!confirm('Delete student #' + (i + 1) + '?')) return;
-  students.splice(i, 1);
-  renderStudentTable();
-  renderStudentOverlays();
-}
-
-function renderStudentTable() {
-  var html = '';
-  students.forEach(function(s, i) {
-    html += '<tr>' +
-      '<td>' + (i + 1) + '</td>' +
-      '<td>' + esc(s.name) + '</td>' +
-      '<td>' + esc(s.parentage) + '</td>' +
-      '<td>' + esc(s.classname) + '</td>' +
-      '<td>' + esc(s.dob) + '</td>' +
-      '<td>' + esc(s.school) + '</td>' +
-      '<td><button onclick="editStudent(' + i + ')">✏️</button></td>' +
-      '<td><button onclick="deleteStudent(' + i + ')">❌</button></td>' +
-      '</tr>';
-  });
-  document.getElementById('studentBody').innerHTML = html;
-}
-
-function renderStudentOverlays() {
-  var box = document.getElementById('studentOverlays');
-  var html = '';
-  students.forEach(function(s, i) {
-    var top = (13.8 + i * 0.68).toFixed(2);
-    html +=
-      '<div class="overlay" style="top:' + top + 'cm;left:3.0cm">'  + esc(s.name)      + '</div>' +
-      '<div class="overlay" style="top:' + top + 'cm;left:7.5cm">'  + esc(s.parentage) + '</div>' +
-      '<div class="overlay" style="top:' + top + 'cm;left:11.6cm">'  + esc(s.classname) + '</div>' +
-      '<div class="overlay" style="top:' + top + 'cm;left:13.5cm">' + esc(s.dob)       + '</div>' +
-      '<div class="overlay" style="top:' + top + 'cm;left:15.8cm">' + esc(s.school)    + '</div>';
-  });
-  box.innerHTML = html;
-}
-
-function esc(str) {
-  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ─── Team Save / Load / Delete ────────────────────────────────────────────────
-function getAllData() {
-  return {
-    discipline: val('discipline'),
-    agegroup:   val('agegroup'),
-    venue:      val('venue'),
-    fromdate:   val('fromdate'),
-    todate:     val('todate'),
-    official1:  val('official1'),
-    posting1:   val('posting1'),
-    official2:  val('official2'),
-    posting2:   val('posting2'),
-    students:   students || []
-  };
-}
-
-function loadData(d) {
-  d = d || {};
-  var fields = ['discipline','agegroup','venue','fromdate','todate',
-                'official1','posting1','official2','posting2'];
-  fields.forEach(function(id) {
-    document.getElementById(id).value = d[id] || '';
-  });
-  students = Array.isArray(d.students) ? d.students : [];
-  renderStudentTable();
-  renderStudentOverlays();
-  updatePreview();
-}
-
-// Returns array of saved team names (without the "team_" prefix)
-function getSavedTeamNames() {
-  var names = [];
-  for (var i = 0; i < localStorage.length; i++) {
-    var key = localStorage.key(i);
-    if (key && key.indexOf('team_') === 0) {
-      names.push(key.substring(5));
-    }
-  }
-  names.sort(function(a, b) { return a.localeCompare(b); });
-  return names;
-}
-
-// Rebuilds the <select> dropdown with all currently saved teams
-function refreshTeamList() {
-  var select = document.getElementById('teamSelect');
-  var names = getSavedTeamNames();
-  var current = select.value;
-  select.innerHTML = '<option value="">— select a saved team —</option>' +
-    names.map(function(n) {
-      return '<option value="' + esc(n) + '">' + esc(n) + '</option>';
-    }).join('');
-  // Restore previous selection if it still exists
-  if (names.indexOf(current) !== -1) select.value = current;
-}
-
-function onTeamSelectChange() {
-  var name = document.getElementById('teamSelect').value;
-  if (name) document.getElementById('teamName').value = name;
-}
-
-function saveTeam() {
-  var name = val('teamName').trim();
-  if (!name) { alert('Please enter a team name first.'); return; }
-  try {
-    localStorage.setItem('team_' + name, JSON.stringify(getAllData()));
-    refreshTeamList();
-    document.getElementById('teamSelect').value = name;
-    alert('✅ Team "' + name + '" saved successfully!');
-  } catch(e) {
-    alert('❌ Save failed: ' + e.message);
-  }
-}
-
-function openTeam() {
-  var name = document.getElementById('teamSelect').value || val('teamName').trim();
-  if (!name) { alert('Please select or enter a team name to load.'); return; }
-  var raw = localStorage.getItem('team_' + name);
-  if (!raw) { alert('❌ Team "' + name + '" not found in storage.'); return; }
-  try {
-    loadData(JSON.parse(raw));
-    document.getElementById('teamName').value = name;
-    alert('✅ Team "' + name + '" loaded!');
-  } catch(e) {
-    alert('❌ Failed to load: ' + e.message);
-  }
-}
-
-function deleteTeam() {
-  var name = document.getElementById('teamSelect').value || val('teamName').trim();
-  if (!name) { alert('Please select or enter a team name to delete.'); return; }
-  if (!confirm('Delete team "' + name + '"?')) return;
-  localStorage.removeItem('team_' + name);
-  refreshTeamList();
-  alert('🗑 Team "' + name + '" deleted.');
-}
-
-// ─── Player Search & Reuse ────────────────────────────────────────────────────
-function searchPlayers() {
-  var q = document.getElementById('playerSearch').value.toLowerCase();
-  var res = playerDB.filter(function(p) {
-    return (p.name || '').toLowerCase().includes(q);
-  }).slice(0, 10);
-  window._searchRes = res;
-  document.getElementById('searchResults').innerHTML = res.map(function(p, i) {
-    return '<div onclick="reusePlayer(' + i + ')">' + esc(p.name) +
-           (p.school ? ' – ' + esc(p.school) : '') + '</div>';
-  }).join('');
-}
-
-function reusePlayer(i) {
-  var p = window._searchRes[i];
-  if (!p) return;
-  students.push(Object.assign({}, p));
-  renderStudentTable();
-  renderStudentOverlays();
-  document.getElementById('playerSearch').value = '';
-  document.getElementById('searchResults').innerHTML = '';
-}
-
-// ─── PDF Export (visual snapshot + invisible embedded JSON for re-import) ────
-async function exportPDF() {
-  try {
-    const preview = document.getElementById('previewBox');
-    const canvas = await html2canvas(preview, {
-      scale: 3,
-      useCORS: true,
-      allowTaint: true
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 1.0);
-    const { jsPDF } = window.jspdf;
-
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
-
-    // Embed the full data as invisible (white, tiny) text so the same PDF
-    // can be re-imported later to restore all fields and students.
-    var data = getAllData();
-    var jsonStr = JSON.stringify({ version: '1.0', data: data });
-    pdf.setFontSize(1);
-    pdf.setTextColor(255, 255, 255);
-    // jsPDF can choke on extremely long single text() calls — split into chunks
-    var chunkSize = 400;
-    var yPos = 295;
-    for (var i = 0; i < jsonStr.length; i += chunkSize) {
-      pdf.text('MO_JSON_CHUNK:' + jsonStr.substring(i, i + chunkSize), 2, yPos);
-      yPos += 1;
-      if (yPos > 296) { pdf.addPage(); yPos = 5; }
-    }
-    pdf.setTextColor(0, 0, 0);
-
-    pdf.save('Movement_Order.pdf');
-
-  } catch (err) {
-    alert('PDF export failed: ' + err.message);
-    console.error(err);
-  }
-}
-
-// ─── PDF Import / Backup Restore ─────────────────────────────────────────────
-// Reads the PDF, extracts the embedded invisible text layer via pdf.js,
-// reassembles the chunks, and restores all fields + students.
-function importBackup(event) {
-  var file = event.target.files[0];
-  if (!file) return;
-
-  ensurePdfJsLoaded().then(function () {
-    var reader = new FileReader();
-    reader.onload = function () {
-      var typedArray = new Uint8Array(reader.result);
-      window.pdfjsLib.getDocument({ data: typedArray }).promise.then(function (pdf) {
-        var pageTextPromises = [];
-        for (var p = 1; p <= pdf.numPages; p++) {
-          pageTextPromises.push(
-            pdf.getPage(p).then(function (page) {
-              return page.getTextContent().then(function (tc) {
-                return tc.items.map(function (it) { return it.str; }).join('\n');
-              });
-            })
-          );
-        }
-        Promise.all(pageTextPromises).then(function (pagesText) {
-          var fullText = pagesText.join('\n');
-          restoreFromExtractedText(fullText);
-          event.target.value = '';
-        }).catch(function (e) {
-          alert('❌ Could not read PDF text: ' + e.message);
-        });
-      }).catch(function (e) {
-        alert('❌ Could not open PDF: ' + e.message);
-      });
-    };
-    reader.readAsArrayBuffer(file);
-  }).catch(function (e) {
-    alert('❌ Could not load PDF reader library: ' + e.message);
-  });
-}
-
-function restoreFromExtractedText(fullText) {
-  // Find every chunk marker and reassemble in order
-  var regex = /MO_JSON_CHUNK:([^\n]*)/g;
-  var match;
-  var chunks = [];
-  while ((match = regex.exec(fullText)) !== null) {
-    chunks.push(match[1]);
-  }
-  if (chunks.length === 0) {
-    alert('❌ No embedded data found in this PDF.\nOnly PDFs exported by this system can be re-imported.');
-    return;
-  }
-  var jsonStr = chunks.join('');
-  // Trim anything after the last closing brace, just in case of trailing noise
-  var lastBrace = jsonStr.lastIndexOf('}');
-  if (lastBrace !== -1) jsonStr = jsonStr.substring(0, lastBrace + 1);
-
-  try {
-    var obj = JSON.parse(jsonStr);
-    if (obj && obj.data) {
-      loadData(obj.data);
-      alert('✅ Data imported successfully!');
-    } else {
-      alert('❌ JSON structure not recognised.');
-    }
-  } catch (e) {
-    alert('❌ Import failed while parsing data: ' + e.message);
-  }
-}
-
-// Lazily load pdf.js (only needed for import)
-function ensurePdfJsLoaded() {
-  return new Promise(function (resolve, reject) {
-    if (window.pdfjsLib) { resolve(); return; }
-    var script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    script.onload = function () {
-      try {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        resolve();
-      } catch (e) { reject(e); }
-    };
-    script.onerror = function () { reject(new Error('Failed to load pdf.js from CDN')); };
+function ensurePdfJsLoaded(){
+  return new Promise(function(resolve,reject){
+    if(window.pdfjsLib){resolve();return;}
+    var script=document.createElement('script');
+    script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload=function(){try{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';resolve();}catch(e){reject(e);}};
+    script.onerror=function(){reject(new Error('Failed to load pdf.js'));};
     document.head.appendChild(script);
   });
 }
