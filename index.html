@@ -291,6 +291,352 @@ function refreshTeamList(){
 function onTeamSelectChange(){var name=document.getElementById('teamSelect').value;if(name)document.getElementById('teamName').value=name;}
 
 function saveTeam(){
+  var name=val('teamName').trim();if(!name){alert('Please enter a team name first.');return;}
+  var key='team_'+name.toLowerCase();
+  try{localStorage.setItem(key,JSON.stringify(getAllData()));refreshTeamList();document.getElementById('teamSelect').value=name.toLowerCase();alert('Team "'+name+'" saved!');}catch(e){alert('Save failed: '+e.message);}
+}
+
+function openTeam(){
+  var name=document.getElementById('teamSelect').value||val('teamName').trim();
+  if(!name){alert('Please select or enter a team name.');return;}
+  var key='team_'+name.toLowerCase();
+  var raw=localStorage.getItem(key);
+  if(!raw){alert('Team "'+name+'" not found.');return;}
+  try{loadData(JSON.parse(raw));document.getElementById('teamName').value=name;alert('Team "'+name+'" loaded!');}catch(e){alert('Failed: '+e.message);}
+}
+
+function deleteTeam(){
+  var name=document.getElementById('teamSelect').value||val('teamName').trim();
+  if(!name){alert('Please select or enter a team name.');return;}
+  var key='team_'+name.toLowerCase();
+  if(!confirm('Delete team "'+name+'"?'))return;
+  localStorage.removeItem(key);refreshTeamList();alert('Team "'+name+'" deleted.');
+}
+
+function searchPlayers(){
+  var q=document.getElementById('playerSearch').value.toLowerCase();
+  var res=playerDB.filter(function(p){return(p.name||'').toLowerCase().includes(q);}).slice(0,10);
+  window._searchRes=res;
+  document.getElementById('searchResults').innerHTML=res.map(function(p,i){return'<div onclick="reusePlayer('+i+')">'+esc(p.name)+(p.school?' – '+esc(p.school):'' )+'</div>';}).join('');
+}
+
+function reusePlayer(i){
+  var p=window._searchRes[i];if(!p)return;
+  students.push(Object.assign({},p));renderStudentTable();renderStudentOverlays();
+  document.getElementById('playerSearch').value='';document.getElementById('searchResults').innerHTML='';
+}
+
+async function exportPDF(){
+  try{
+    var disciplineName=val('discipline').trim().toUpperCase().replace(/\s+/g,'_')||'MOVEMENT_ORDER';
+    var filename=disciplineName+'_ORDER.pdf';
+    const preview=document.getElementById('previewBox');
+    const canvas=await html2canvas(preview,{scale:3,useCORS:true,allowTaint:true});
+    const imgData=canvas.toDataURL('image/jpeg',1.0);
+    const{jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    pdf.addImage(imgData,'JPEG',0,0,210,297);
+    var data=getAllData();
+    var jsonStr=JSON.stringify({version:'1.0',data:data});
+    pdf.setFontSize(1);pdf.setTextColor(255,255,255);
+    var chunkSize=400;var yPos=295;
+    for(var i=0;i<jsonStr.length;i+=chunkSize){
+      pdf.text('MO_JSON_CHUNK:'+jsonStr.substring(i,i+chunkSize),2,yPos);
+      yPos+=1;if(yPos>296){pdf.addPage();yPos=5;}
+    }
+    pdf.setTextColor(0,0,0);
+    pdf.save(filename);
+  }catch(err){alert('PDF export failed: '+err.message);console.error(err);}
+}
+
+function importBackup(event){
+  var file=event.target.files[0];if(!file)return;
+  ensurePdfJsLoaded().then(function(){
+    var reader=new FileReader();
+    reader.onload=function(){
+      var typedArray=new Uint8Array(reader.result);
+      window.pdfjsLib.getDocument({data:typedArray}).promise.then(function(pdf){
+        var pp=[];for(var p=1;p<=pdf.numPages;p++){pp.push(pdf.getPage(p).then(function(page){return page.getTextContent().then(function(tc){return tc.items.map(function(it){return it.str;}).join('\n');});}));}
+        Promise.all(pp).then(function(pagesText){restoreFromExtractedText(pagesText.join('\n'));event.target.value='';}).catch(function(e){alert('Could not read PDF text: '+e.message);});
+      }).catch(function(e){alert('Could not open PDF: '+e.message);});
+    };
+    reader.readAsArrayBuffer(file);
+  }).catch(function(e){alert('Could not load PDF reader: '+e.message);});
+}
+
+function restoreFromExtractedText(fullText){
+  var regex=/MO_JSON_CHUNK:([^\n]*)/g;var match;var chunks=[];
+  while((match=regex.exec(fullText))!==null){chunks.push(match[1]);}
+  if(chunks.length===0){alert('No embedded data found in this PDF.');return;}
+  var jsonStr=chunks.join('');var lastBrace=jsonStr.lastIndexOf('}');
+  if(lastBrace!==-1)jsonStr=jsonStr.substring(0,lastBrace+1);
+  try{var obj=JSON.parse(jsonStr);if(obj&&obj.data){loadData(obj.data);alert('Data imported successfully!');}else{alert('JSON structure not recognised.');}}catch(e){alert('Import failed: '+e.message);}
+}
+
+function toTitle(str){return(str||'').replace(/\w\S*/g,function(w){return w.charAt(0).toUpperCase()+w.substr(1).toLowerCase();});}
+
+function ensurePdfJsLoaded(){
+  return new Promise(function(resolve,reject){
+    if(window.pdfjsLib){resolve();return;}
+    var script=document.createElement('script');
+    script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload=function(){try{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worktr:nth-child(even) td{background:#f0f5ff}
+tr.dragging td{background:#fff8e1;opacity:.6}
+tr.drag-over td{background:#e8f0fe;outline:2px dashed #0d6efd}
+.drag-handle{cursor:grab;color:#aaa;font-size:16px;padding:0 4px;user-select:none}
+.drag-handle:active{cursor:grabbing}
+.team-row{display:flex;gap:6px;align-items:center;margin-top:4px}
+.team-row select{flex:1}
+#searchResults div{padding:6px 8px;background:#f8f9ff;border:1px solid #d0d7e0;cursor:pointer;font-size:12px;text-transform:uppercase;border-radius:4px;margin-top:2px}
+#searchResults div:hover{background:#e8f0ff;border-color:#0d6efd}
+.preview{position:relative;width:210mm;height:297mm;background:#fff;border:2px solid #0d6efd;overflow:hidden;flex-shrink:0;border-radius:10px;box-shadow:0 6px 30px rgba(0,0,0,0.3)}
+.preview img{position:absolute;left:0;top:0;width:100%;height:100%}
+.overlay{position:absolute;font-weight:bold;font-size:11pt;color:#000;white-space:nowrap;text-transform:uppercase}
+.import-label{background:#20c997;color:#fff;padding:7px 13px;border-radius:7px;font-size:12px;font-weight:600;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.import-label:hover{background:#199d7a}
+input[type=file]{display:none}
+hr{border:none;border-top:1.5px solid #e0e7ef;margin:12px 0}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <span style="font-size:24px">📋</span>
+  <h2>Movement Order Generator</h2>
+  <span class="badge">J&amp;K Sports</span>
+</div>
+
+<div class="container">
+
+<div class="form">
+
+  <div class="section-title">📍 Event Details</div>
+  <label>Discipline</label><input id="discipline" oninput="updatePreview()">
+  <div class="row2">
+    <div>
+      <label>Age Group</label><input id="agegroup" oninput="updatePreview()">
+    </div>
+    <div>
+      <label>Gender</label>
+      <input type="text" id="gender" placeholder="e.g. Boys / Girls" oninput="updatePreview()">
+    </div>
+  </div>
+  <label>Venue</label><input id="venue" oninput="updatePreview()">
+  <div class="row2">
+    <div><label>From Date</label><input type="date" id="fromdate" oninput="updatePreview()"></div>
+    <div><label>To Date</label><input type="date" id="todate" oninput="updatePreview()"></div>
+  </div>
+
+  <div class="section-title">👨‍💼 Officials</div>
+  <div class="row2">
+    <div><label>Official 1 – Name</label><input id="official1" oninput="updatePreview()"></div>
+    <div><label>Official 1 – Posting</label><input id="posting1" oninput="updatePreview()"></div>
+  </div>
+  <div class="row2">
+    <div><label>Official 2 – Name</label><input id="official2" oninput="updatePreview()"></div>
+    <div><label>Official 2 – Posting</label><input id="posting2" oninput="updatePreview()"></div>
+  </div>
+
+  <div class="section-title">🧑‍🎓 Add Student</div>
+  <div class="row2">
+    <div><label>Student Name</label><input id="studentname"></div>
+    <div><label>Parentage</label><input id="parentage"></div>
+  </div>
+  <div class="row3">
+    <div><label>Class</label><input id="classname"></div>
+    <div><label>DOB</label><input type="text" id="dob" placeholder="e.g. 01-01-2010"></div>
+    <div><label>School</label><input id="school"></div>
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-success" onclick="addStudent()">➕ Add Student</button>
+  </div>
+
+  <br>
+  <table id="studentTable">
+    <thead>
+      <tr>
+        <th>#</th><th>Name</th><th>Parentage</th><th>Class</th><th>DOB</th><th>School</th><th>Move</th><th colspan="2">Act</th>
+      </tr>
+    </thead>
+    <tbody id="studentBody"></tbody>
+  </table>
+
+  <div class="section-title">💾 Team Management</div>
+  <label>Team Name</label><input id="teamName" placeholder="ENTER TEAM NAME">
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="saveTeam()">💾 Save Team</button>
+  </div>
+  <label style="margin-top:8px">Saved Teams</label>
+  <div class="team-row">
+    <select id="teamSelect" onchange="onTeamSelectChange()">
+      <option value="">— SELECT A SAVED TEAM —</option>
+    </select>
+    <button class="btn btn-warning" onclick="openTeam()">📂 Open</button>
+    <button class="btn btn-danger" onclick="deleteTeam()">🗑 Delete</button>
+  </div>
+
+  <div class="section-title">🔍 Search &amp; Reuse Player</div>
+  <input id="playerSearch" placeholder="TYPE PLAYER NAME…" oninput="searchPlayers()">
+  <div id="searchResults"></div>
+
+  <div class="section-title">📄 Actions</div>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="exportPDF()">📄 Export PDF</button>
+    <label class="import-label">📥 Import Backup
+      <input type="file" id="pdfImport" accept=".pdf" onchange="importBackup(event)">
+    </label>
+    <button class="btn btn-secondary" onclick="updatePreview()">🔄 Preview</button>
+  </div>
+
+</div>
+
+<!-- PREVIEW -->
+<div class="preview" id="previewBox">
+  <img id="templateImg" src="movement_order.jpg" onerror="this.style.opacity=0.05">
+  <div class="overlay" id="pdiscipline"  style="top:5cm;left:4cm"></div>
+  <div class="overlay" id="pagegroup"    style="top:5cm;left:12.5cm"></div>
+  <div class="overlay" id="pgender"      style="top:5cm;left:16cm"></div>
+  <div class="overlay" id="pvenue1"      style="top:5.8cm;left:3cm"></div>
+  <div class="overlay" id="pvenue2"      style="top:6.5cm;left:2.5cm"></div>
+  <div class="overlay" id="pvenue3"      style="top:8.8cm;left:6.2cm"></div>
+  <div class="overlay" id="pfrom1"       style="top:5.8cm;left:8.2cm"></div>
+  <div class="overlay" id="pfrom2"       style="top:6.5cm;left:8cm"></div>
+  <div class="overlay" id="pto"          style="top:6.5cm;left:12cm"></div>
+  <div class="overlay" id="pofficial1"   style="top:7.4cm;left:3.5cm"></div>
+  <div class="overlay" id="pposting1"    style="top:7.4cm;left:15cm"></div>
+  <div class="overlay" id="pofficial2"   style="top:22.5cm;left:11cm"></div>
+  <div class="overlay" id="pposting2"    style="top:23.2cm;left:11cm"></div>
+  <div id="studentOverlays"></div>
+</div>
+
+</div><!-- end .container -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+let students=[];let playerDB=[];let selectedGender='';
+let dragSrcIdx=null;
+
+window.addEventListener('load',function(){
+  try{playerDB=JSON.parse(localStorage.getItem('playerDB')||'[]');}catch(e){}
+  refreshTeamList();updatePreview();
+});
+
+function moveStudent(i,dir){
+  var j=i+dir;
+  if(j<0||j>=students.length)return;
+  var tmp=students[i];students[i]=students[j];students[j]=tmp;
+  renderStudentTable();renderStudentOverlays();
+}
+
+function setGender(g){
+  selectedGender=g;
+  updatePreview();
+}
+
+function updatePreview(){
+  var d=val('discipline');
+  var ag=val('agegroup');
+  var gLabel=val('gender');
+  document.getElementById('pdiscipline').innerText=toTitle(d);
+  document.getElementById('pagegroup').innerText=toTitle(ag);
+  document.getElementById('pgender').innerText=toTitle(gLabel);
+  ['pvenue1','pvenue2','pvenue3'].forEach(function(id){document.getElementById(id).innerText=toTitle(val('venue'));});
+  document.getElementById('pfrom1').innerText=val('fromdate');
+  document.getElementById('pfrom2').innerText=val('fromdate');
+  document.getElementById('pto').innerText=val('todate');
+  document.getElementById('pofficial1').innerText=toTitle(val('official1'));
+  document.getElementById('pposting1').innerText=toTitle(val('posting1'));
+  document.getElementById('pofficial2').innerText=toTitle(val('official2'));
+  document.getElementById('pposting2').innerText=toTitle(val('posting2'));
+}
+
+function val(id){var el=document.getElementById(id);return el?el.value||'':'';}
+
+function addStudent(){
+  var s={name:toTitle(val('studentname')),parentage:toTitle(val('parentage')),classname:toTitle(val('classname')),dob:val('dob'),school:toTitle(val('school'))};
+  if(!s.name){alert('Please enter a student name.');return;}
+  students.push(s);
+  playerDB.push(Object.assign({},s));
+  try{localStorage.setItem('playerDB',JSON.stringify(playerDB));}catch(e){}
+  ['studentname','parentage','classname','dob','school'].forEach(function(id){document.getElementById(id).value='';});
+  renderStudentTable();renderStudentOverlays();
+}
+
+function editStudent(i){
+  var s=students[i];if(!s)return;
+  document.getElementById('studentname').value=s.name||'';
+  document.getElementById('parentage').value=s.parentage||'';
+  document.getElementById('classname').value=s.classname||'';
+  document.getElementById('dob').value=s.dob||'';
+  document.getElementById('school').value=s.school||'';
+  students.splice(i,1);renderStudentTable();renderStudentOverlays();
+}
+
+function deleteStudent(i){if(!confirm('Delete student #'+(i+1)+'?'))return;students.splice(i,1);renderStudentTable();renderStudentOverlays();}
+
+function renderStudentTable(){
+  var tbody=document.getElementById('studentBody');
+  tbody.innerHTML='';
+  students.forEach(function(s,i){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td>'+(i+1)+'</td>'+
+      '<td>'+esc(s.name)+'</td>'+
+      '<td>'+esc(s.parentage)+'</td>'+
+      '<td>'+esc(s.classname)+'</td>'+
+      '<td>'+esc(s.dob)+'</td>'+
+      '<td>'+esc(s.school)+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="btn btn-secondary" style="padding:2px 6px;font-size:11px" onclick="moveStudent('+i+',-1)" '+(i===0?'disabled':'')+'>▲</button> '+
+        '<button class="btn btn-secondary" style="padding:2px 6px;font-size:11px" onclick="moveStudent('+i+',1)" '+(i===students.length-1?'disabled':'')+'>▼</button>'+
+      '</td>'+
+      '<td><button class="btn btn-warning" style="padding:3px 7px;font-size:10px" onclick="editStudent('+i+')">✏️</button></td>'+
+      '<td><button class="btn btn-danger" style="padding:3px 7px;font-size:10px" onclick="deleteStudent('+i+')">❌</button></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function renderStudentOverlays(){
+  var box=document.getElementById('studentOverlays');var html='';
+  students.forEach(function(s,i){
+    var top=(13.8+i*0.68).toFixed(2);
+    html+='<div class="overlay" style="top:'+top+'cm;left:3.0cm">'+esc(s.name)+'</div>'+
+          '<div class="overlay" style="top:'+top+'cm;left:7.5cm">'+esc(s.parentage)+'</div>'+
+          '<div class="overlay" style="top:'+top+'cm;left:11.6cm">'+esc(s.classname)+'</div>'+
+          '<div class="overlay" style="top:'+top+'cm;left:13.5cm">'+esc(s.dob)+'</div>'+
+          '<div class="overlay" style="top:'+top+'cm;left:15.8cm">'+esc(s.school)+'</div>';
+  });
+  box.innerHTML=html;
+}
+
+function esc(str){return(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function getAllData(){
+  return{discipline:val('discipline'),agegroup:val('agegroup'),gender:val('gender'),venue:val('venue'),fromdate:val('fromdate'),todate:val('todate'),official1:val('official1'),posting1:val('posting1'),official2:val('official2'),posting2:val('posting2'),students:students||[]};
+}
+
+function loadData(d){
+  d=d||{};
+  ['discipline','agegroup','gender','venue','fromdate','todate','official1','posting1','official2','posting2'].forEach(function(id){document.getElementById(id).value=d[id]||'';});
+  students=Array.isArray(d.students)?d.students:[];
+  renderStudentTable();renderStudentOverlays();updatePreview();
+}
+
+function getSavedTeamNames(){
+  var names=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('team_')===0)names.push(k.substring(5));}
+  names.sort(function(a,b){return a.localeCompare(b);});return names;
+}
+
+function refreshTeamList(){
+  var select=document.getElementById('teamSelect');var names=getSavedTeamNames();var current=select.value;
+  select.innerHTML='<option value="">— SELECT A SAVED TEAM —</option>'+names.map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join('');
+  if(names.indexOf(current)!==-1)select.value=current;
+}
+
+function onTeamSelectChange(){var name=document.getElementById('teamSelect').value;if(name)document.getElementById('teamName').value=name;}
+
+function saveTeam(){
   var name=toTitle(val('teamName').trim());if(!name){alert('Please enter a team name first.');return;}
   try{localStorage.setItem('team_'+name,JSON.stringify(getAllData()));refreshTeamList();document.getElementById('teamSelect').value=name;alert('Team "'+name+'" saved!');}catch(e){alert('Save failed: '+e.message);}
 }
