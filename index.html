@@ -260,8 +260,8 @@ function renderStudentOverlays(){
   students.forEach(function(s, i){
     var top = (13.8 + i * 0.68).toFixed(2);
     html +=
-      '<div class="overlay" style="top:'+top+'cm;left:3.0cm">'+esc(s.name)+'</div>'+
-      '<div class="overlay" style="top:'+top+'cm;left:7.5cm">'+esc(s.parentage)+'</div>'+
+      '<div class="overlay" style="top:'+top+'cm;left:3.0cm;font-size:10pt">'+esc(s.name)+'</div>'+
+  '<div class="overlay" style="top:'+top+'cm;left:7.5cm;font-size:10pt">'+esc(s.parentage)+'</div>'+
       '<div class="overlay" style="top:'+top+'cm;left:11.6cm">'+esc(s.classname)+'</div>'+
       '<div class="overlay" style="top:'+top+'cm;left:13.5cm">'+esc(s.dob)+'</div>'+
       '<div class="overlay" style="top:'+top+'cm;left:15.8cm">'+esc(s.school)+'</div>';
